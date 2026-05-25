@@ -65,6 +65,14 @@ git log --oneline -3
 grep -n "base_delay=15.0" agent/conversation_loop.py
 ```
 
+## 第5步：同步 user-skills（技能库）
+```bash
+cd ~/.hermes/hermes-agent/user-skills
+GIT_TERMINAL_PROMPT=0 GIT_HTTP_AUTHORIZATION="Bearer $(gh auth token)" git pull fork user-skills
+```
+
+---
+
 ## 当前本地 Patch（2026-05-25）
 
 | 文件 | 改动 | 当前值 |
