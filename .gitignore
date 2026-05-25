@@ -1,0 +1,25 @@
+# Sensitive files
+.env
+.env.*
+*.env
+models.json
+.curator_state
+
+# Temp files
+*.tmp.*
+*.tmp
+.tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Archive/runtime
+.archive/
+.worktrees/

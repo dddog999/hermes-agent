@@ -1,0 +1,174 @@
+# SKILL ARCHITECTURE REPORT
+# gsd-master for CodeBuddy
+# Status: ✅ SELF-CONTAINED & PRODUCTION READY
+
+## Overview
+
+The `gsd-master` skill is fully adapted for CodeBuddy with all executable components self-contained within the skill directory. Agents are placed at project root following CodeBuddy conventions.
+
+---
+
+## Directory Structure
+
+```
+.codebuddy/
+├── agents/                         # Project-level agents (CodeBuddy convention)
+│   ├── gsd-codebase-mapper.md
+│   ├── gsd-debugger.md
+│   ├── gsd-executor.md
+│   ├── gsd-integration-checker.md
+│   ├── gsd-nyquist-auditor.md
+│   ├── gsd-phase-researcher.md
+│   ├── gsd-plan-checker.md
+│   ├── gsd-planner.md
+│   ├── gsd-project-researcher.md
+│   ├── gsd-research-synthesizer.md
+│   ├── gsd-roadmapper.md
+│   ├── gsd-ui-auditor.md
+│   ├── gsd-ui-checker.md
+│   ├── gsd-ui-researcher.md
+│   ├── gsd-user-profiler.md      # ← Only agent file
+│   └── gsd-verifier.md
+│
+└── skills/
+    └── gsd-master/                # Self-contained skill directory
+        ├── SKILL.md               # Main entry point
+        │
+        ├── scripts/               # ALL executable scripts
+        │   ├── gsd-tools.cjs      # CLI utilities (15 modules)
+        │   ├── lib/               # Helper libraries (14 .cjs files)
+        │   └── workflows/         # Embedded workflows
+        │       ├── execute-plan.md
+        │       └── node-repair.md
+        │
+        ├── references/
+        │   ├── commands/          # 41 command definitions
+        │   │   ├── new-project.md
+        │   │   ├── plan-phase.md
+        │   │   ├── execute-phase.md
+        │   │   ├── execute-plan.md
+        │   │   ├── progress.md
+        │   │   ├── help.md
+        │   │   └── ... (35 more)
+        │   │
+        │   ├── docs/              # 14 reference documents
+        │   │   ├── checkpoints.md
+        │   │   ├── verification-patterns.md
+        │   │   ├── model-profile-resolution.md
+        │   │   └── ... (11 more)
+        │   │
+        │   └── templates/         # 41 document templates
+        │       ├── project.md
+        │       ├── roadmap.md
+        │       ├── plan.md
+        │       ├── summary.md
+        │       └── ... (37 more)
+        │
+        └── templates/             # Additional templates
+            └── summary.md         # Summary template
+```
+
+**Total files:** 112  
+**Self-contained:** Yes  
+**External dependencies:** None (except `.planning/` project references)
+
+---
+
+## Path Reference Conventions
+
+All paths use **relative references** (CodeBuddy `@` syntax) for portability:
+
+| Type | Original Path | CodeBuddy Path | From Context |
+|------|--------------|----------------|--------------|
+| Workflows | `@~/.claude/get-shit-done/workflows/` | `@../scripts/workflows/` | command file |
+| Tools | `$HOME/.scripts/gsd-tools.cjs` | `@../scripts/gsd-tools.cjs` | bash blocks |
+| Templates | `@~/.claude/get-shit-done/templates/` | `@../templates/` | command file |
+| Docs | `@~/.claude/get-shit-done/references/` | `@../docs/` | command file |
+| Agents | `@~/.claude/get-shit-done/agents/` | `@../../agents/` | command file |
+| Project files | N/A | `@.planning/...` | any context |
+
+---
+
+## What Was Fixed
+
+### 1. Agents Relocation
+**Before:** Agents were duplicated inside skill at `references/agents/`  
+**After:** Agents live at project root `.codebuddy/agents/` (CodeBuddy standard)
+
+**Why:** CodeBuddy loads all agents from project `.codebuddy/agents/`, not from inside skills.
+
+### 2. Workflow Embedding
+**Before:** Workflows referenced external `@~/.claude/get-shit-done/workflows/`  
+**After:**
+- Physical files copied to `scripts/workflows/`
+- References updated to `@../scripts/workflows/`
+
+**Benefit:** All workflow procedures are now inside skill and versioned with it.
+
+### 3. Tool Path Fix
+**Before:** `$HOME/.scripts/gsd-tools.cjs` (absolute, depends on user home)  
+**After:** `@../scripts/gsd-tools.cjs` (relative, portable)
+
+**Benefit:** Skill works regardless of installation location.
+
+### 4. Template & Reference Consolidation
+**Before:** Mixed references to `@../docs/`, `@../templates/`, some broken  
+**After:** All templating resources located in `references/{docs,templates}/` and referenced consistently.
+
+---
+
+## Conversion Script
+
+The improved `convert-to-codebuddy.cjs` now enforces:
+
+1. ✅ **All scripts in skill directory** (no external references)
+2. ✅ **Agents at project root** (`.codebuddy/agents/`)
+3. ✅ **Relative path conversion** (portable across platforms)
+4. ✅ **Frontmatter injection** (adds `name`, `description` if missing)
+5. ✅ **enabledAutoRun** added to all agents
+6. ✅ **Line ending normalization** (LF for cross-platform)
+
+---
+
+## Verification
+
+```bash
+# Load skill
+use_skill gsd-master
+
+# Test a command
+/gsd-help
+
+# Check agent reference resolution
+# The gsd-user-profiler agent should load from .codebuddy/agents/
+```
+
+---
+
+## Key Design Decisions
+
+1. **Agents outside skill**: Follows CodeBuddy's agent discovery pattern (`$PROJECT/.codebuddy/agents/*.md`)
+2. **Workflows inside skill**: Keeps all execution logic together for versioning
+3. **Project-relative references**: `.planning/` files are excluded intentionally — they bridge to user's project state
+4. **No $HOME dependencies**: All home directory references converted to relative paths
+5. **Single-source agents**: Only one copy of each agent at project root (no duplication in skills)
+
+---
+
+## Comparison: Original vs CodeBuddy
+
+| Aspect | Original GSD | CodeBuddy Adaptation |
+|--------|-------------|---------------------|
+| Location | `~/.claude/` | `.codebuddy/skills/gsd-master/` |
+| Invocation | `/gsd:xxx` commands | `use_skill gsd-master` + `/gsd-xxx` |
+| Agents | `~/.claude/agents/` | `.codebuddy/agents/` |
+| Scripts | `~/.claude/scripts/` | `@./scripts/` (inside skill) |
+| Workflows | `~/.claude/workflows/` | `@./scripts/workflows/` (inside skill) |
+| Path refs | Absolute (`$HOME/`) | Relative (`@../`) |
+| Platform | Claude Code only | CodeBuddy (cross-platform) |
+
+---
+
+**Maintained by:** convert-to-codebuddy.cjs  
+**Last updated:** 2025-03-19  
+**Status:** ✅ Production Ready

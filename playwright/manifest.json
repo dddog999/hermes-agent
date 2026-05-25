@@ -1,0 +1,11 @@
+{
+  "name": "playwright",
+  "description": "Browser automation via Playwright MCP for testing, screenshots, web scraping, and form filling. Use when users need to navigate websites, extract data, test web apps, or automate browser workflows.",
+  "license": "MIT",
+  "compatibility": "Requires npx and Playwright MCP server",
+  "metadata": {
+    "author": "oh-my-opencode-team",
+    "version": "1.0.0",
+    "category": "browser-automation"
+  }
+}
