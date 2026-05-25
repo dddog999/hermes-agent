@@ -175,6 +175,17 @@ scripts/run_tests.sh
 - **AI 分析 diff 时注意** — 上游可能删除了你的改动（如 auxiliary_client.py fallback），需要手动恢复
 - **Remote 推送目标** — `origin` remote 的 push URL 可能指向 upstream，必须用 `fork` remote 推送：`git push fork BRANCH`
 - **WSL+Tailscale DNS 劫持** — Tailscale DNS (100.100.100.100) 劫持 github.com 到 198.18.x.x（CIPA内网段），导致 HTTPS TLS 握手失败 + SSH 连接被重置。解法：`git remote set-url --push origin https://github.com/owner/repo.git`（HTTPS走token认证，不走SSH）；fetch 仍需 `GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git fetch upstream`
+- **git push gnutls EOF / TLS non-properly terminated** — 当 Tailscale DNS 劫持时，`git push` 在 HTTPS 握手阶段报 `gnutls_handshake() failed: The TLS connection was non-properly terminated` 或 `RPC failed; curl 56 GnuTLS recv error (-110)`。解决：用 `GIT_HTTP_AUTHORIZATION=Bearer <token>` 环境变量认证而非 URL 嵌入 token：
+
+  ```bash
+  # ✅ 用环境变量（正确）
+  GIT_TERMINAL_PROMPT=0 GIT_HTTP_AUTHORIZATION="Bearer ghp_XXXXXXXXXXXX" git push -u fork branch
+
+  # ❌ URL 嵌入 token（失败：terminal prompts disabled）
+  git push https://ghp_XXX@github.com/owner/repo.git branch
+  ```
+
+  **完整重试脚本参考**：`references/git-push-bearer-auth.md`
 - **Large repo reset timeout** — `git reset --hard upstream/main` on repos with 1000+ files times out and gets BLOCKED by terminal. Use `git checkout <commit> -- .` to stage all files, then `git commit` to create an equivalent snapshot. This avoids the massive file write that reset triggers.
 - **Merge 冲突过多时换策略** — 当 origin/main 落后 upstream/main 数以千计的 commit 时，`git merge` 会产生 100+ 冲突。优先用 `checkout + commit` 策略（先重置到干净上游，再手动恢复 2-3 个关键改动），而非花时间解决 100+ 冲突
 - **Origin/main 落后判断** — 用 `git merge-base HEAD upstream/main` 对比 HEAD 与 upstream 的共同祖先。如果 merge-base 是更早的 commit（而非 HEAD 或 upstream），说明两边各自有独立推进，需谨慎选择 merge 策略

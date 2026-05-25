@@ -227,6 +227,62 @@ ln -s <cloud-dir>/hermes-sync/memories/USER.md ~/.hermes/memories/USER.md
 - 多机同时写入可能相互覆盖。Hermes 的 `memory(action="add"/"replace", target="user")` 是整段操作，不是三路合并
 - 冲突时坚果云会创建 `USER.md (冲突副本).md`，需手动整理
 
+## 方案一（推荐）：Git 仓库同步（2026-05-26）
+
+**原理**：技能库纳入 `hermes-agent` 仓库的子目录 `user-skills/`，与其他代码一起通过 Git 管理。
+
+**优点**：
+- 天然版本控制，不怕文件锁 / `.tmp` 污染
+- 多机通过 `git pull` 同步，不依赖云盘
+- 支持分支开发，冲突可追溯
+
+**在 wooking（第一台机器）上执行：**
+```bash
+cd ~/.hermes/hermes-agent
+git remote get-url fork   # 确认为 git@github.com:owner/repo.git
+
+# user-skills 目录已在仓库中初始化并推送
+# ~/.hermes/skills → symlink 指向 user-skills
+```
+
+**在新机器（kangle）上同步：**
+```bash
+cd ~/.hermes/hermes-agent
+git remote get-url fork   # 确认为 git@github.com:owner/repo.git
+git fetch fork
+git checkout fork/user-skills   # 切换到 user-skills 分支
+
+# 建立 symlink
+unlink ~/.hermes/skills
+ln -s ~/.hermes/hermes-agent/user-skills ~/.hermes/skills
+```
+
+**日常同步（改完技能后）：**
+```bash
+cd ~/.hermes/hermes-agent/user-skills
+GIT_TERMINAL_PROMPT=0 GIT_HTTP_AUTHORIZATION="Bearer ghp_XXXXXXXXXXXX" \
+  git push -u fork user-skills
+
+# 在另一台机器上：
+cd ~/.hermes/hermes-agent/user-skills
+git pull fork user-skills
+```
+
+**验证 Hermes 可用：**
+```bash
+hermes skills list | wc -l   # 应显示 100+ 个技能
+```
+
+---
+
+## 方案二（已归档）：坚果云符号链接 ❌
+
+> ⚠️ **已废弃**：Nutstore 9p 协议 + Windows 文件锁导致大量 `PermissionError` 和 `.tmp.*` 残留文件。2026-05-26 已迁移至 Git 方案。
+
+旧流程归档在 `.archive/multi-machine-nutstore-sync/`。
+
+---
+
 ## 归档参考
 
 旧版方案（已归档在 `.archive/` 下的技能）：
